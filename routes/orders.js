@@ -43,8 +43,16 @@ router.post('/', protect, async (req, res) => {
       statusHistory: [{ status: paymentMethod === 'cod' ? 'confirmed' : 'pending_payment', timestamp: new Date(), note: 'Order created' }],
     });
 
-    // 🔔 Fire admin notification
-    notifyNewOrder(order);
+    console.log('User Name:', req.user.name);
+    console.log('User Email:', req.user.email);
+    
+    // 🔔 Fire admin + customer notification
+    await notifyNewOrder({
+      ...order.toJSON(),
+      customerEmail: req.user.email,
+      customerName: req.user.name,
+    });
+ 
 
     res.status(201).json(order.toJSON());
   } catch (err) {

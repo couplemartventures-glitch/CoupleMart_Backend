@@ -65,7 +65,7 @@ router.post('/verify', protect, async (req, res) => {
       }],
     });
 
-    // 🔔 Notify admin
+    console.log('Payment success notification triggered');
     notifyPaymentSuccess(order);
 
     res.json({ message: 'Payment verified successfully', orderId: order.id });
