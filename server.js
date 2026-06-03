@@ -20,9 +20,10 @@ dotenv.config();
 const app = express();
 
 const allowedOrigins = [
-  'http://localhost:5173',
   'https://couplemart.in',
-  'https://www.couplemart.in'
+  'https://www.couplemart.in',
+  'http://localhost:5173'
+
 ];
 
 app.use(cors({
