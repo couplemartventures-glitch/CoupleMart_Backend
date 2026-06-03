@@ -1,8 +1,6 @@
 // services/notificationService.js
-// Handles admin notifications after order events
-// Works in-memory + can be extended with email/SMS/push
+ 
 const nodemailer = require('nodemailer');
-const axios = require('axios');
 const EventEmitter = require('events');
 const emitter = new EventEmitter();
 
@@ -27,17 +25,7 @@ async function sendEmail(subject, html) {
   }
 }
 
-async function sendWhatsapp(message) {
-  try {
-    const text = encodeURIComponent(message);
-
-    await axios.get(
-      `https://api.callmebot.com/whatsapp.php?phone=7373822038&text=${text}&apikey=${process.env.CALLMEBOT_API_KEY}`
-    );
-  } catch (err) {
-    console.error('WhatsApp Error:', err.message);
-  }
-}
+ 
 
 // In-memory notification store (swap with DB table for production)
 let notifications = [];
