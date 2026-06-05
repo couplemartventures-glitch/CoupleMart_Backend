@@ -3,7 +3,7 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { Order } = require('../models/Order');
 const { protect, adminOnly } = require('../middleware/auth');
-const { notifyNewOrder, notifyDeliveryAssigned } = require('./Notification');
+const { notifyNewOrder, notifyDeliveryAssigned,transporter } = require('./Notification');
 
 const router = express.Router();
 
@@ -59,17 +59,21 @@ router.post('/', protect, async (req, res) => {
 });
 
 // ADD THIS to routes/orders.js or any route file — remove after debugging
-router.get('/test-email', protect, adminOnly, async (req, res) => {
+router.get('/email-test', async (req, res) => {
   try {
     await transporter.sendMail({
       from: 'couplemartventures@gmail.com',
       to: 'couplemartventures@gmail.com',
-      subject: 'Test Email from Server',
-      html: '<h2>Test email working!</h2>',
+      subject: 'Render SMTP Test',
+      html: '<h2>Working!</h2>',
     });
-    res.json({ success: true, message: 'Email sent!' });
+    res.json({ ok: true, message: 'Email sent! Check inbox.' });
   } catch (err) {
-    res.status(500).json({ error: err.message, code: err.code });
+    res.status(500).json({ 
+      error: err.message, 
+      code: err.code,        // EAUTH = wrong password, ECONNECTION = port blocked
+      response: err.response 
+    });
   }
 });
 

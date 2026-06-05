@@ -375,6 +375,7 @@ function markAllRead() {
 
 module.exports = {
   emitter,
+  transporter,   
   sendEmail,
   notifyNewOrder,
   notifyPaymentSuccess,
