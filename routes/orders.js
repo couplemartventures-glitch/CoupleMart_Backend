@@ -3,7 +3,7 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { Order } = require('../models/Order');
 const { protect, adminOnly } = require('../middleware/auth');
-const { notifyNewOrder, notifyDeliveryAssigned } = require('../services/notificationService');
+const { notifyNewOrder, notifyDeliveryAssigned } = require('./Notification');
 
 const router = express.Router();
 
@@ -47,11 +47,11 @@ router.post('/', protect, async (req, res) => {
     console.log('User Email:', req.user.email);
     
     // 🔔 Fire admin + customer notification
-    // await notifyNewOrder({
-    //   ...order.toJSON(),
-    //   customerEmail: req.user.email,
-    //   customerName: req.user.name,
-    // });
+    await notifyNewOrder({
+      ...order.toJSON(),
+      customerEmail: req.user.email,
+      customerName: req.user.name,
+    });
  
 
     res.status(201).json(order.toJSON());
