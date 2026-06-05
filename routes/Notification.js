@@ -12,18 +12,20 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// notificationService.js
 async function sendEmail(subject, html) {
-  try {
-    await transporter.sendMail({
-      from: "vickymahi2102@gmail.com",
-      to: "couplemartventures@gmail.com",
-      subject,
-      html,
-    });
-  } catch (err) {
-    console.error('Email Error:', err.message);
+    try {
+      await transporter.sendMail({
+        from: 'couplemartventures@gmail.com',  // ← was vickymahi2102@gmail.com, MUST match auth.user
+        to: 'couplemartventures@gmail.com',
+        subject,
+        html,
+      });
+      console.log('✅ Admin email sent');
+    } catch (err) {
+      console.error('❌ Email Error:', err.message, err.code);  // ← log the code too
+    }
   }
-}
 
  
 
