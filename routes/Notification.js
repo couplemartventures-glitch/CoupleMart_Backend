@@ -85,7 +85,7 @@ async function sendCustomerOrderEmail(order) {
     console.log('❌ No customer email found');
     return;
   }
-
+  try { 
   await transporter.sendMail({
     from: 'couplemartventures@gmail.com',
     to: order.customerEmail,
@@ -295,6 +295,9 @@ async function sendCustomerOrderEmail(order) {
   });
 
   console.log('✅ Customer email sent');
+} catch (err) {                // ← and this
+    console.error('❌ Customer email failed:', err.message);
+  }
 }
 
 async function notifyPaymentSuccess(order) {

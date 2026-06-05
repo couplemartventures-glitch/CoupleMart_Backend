@@ -47,7 +47,9 @@ router.post('/', protect, async (req, res) => {
     console.log('User Email:', req.user.email);
     
     // 🔔 Fire admin + customer notification
-    await notifyNewOrder({...order.toJSON()});
+    notifyNewOrder({...order.toJSON()}).catch(err =>
+      console.error('⚠️ notifyNewOrder failed (non-fatal):', err.message)
+    );
  
 
     res.status(201).json(order.toJSON());
