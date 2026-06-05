@@ -1,48 +1,31 @@
-// services/notificationService.js
- 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const EventEmitter = require('events');
 const emitter = new EventEmitter();
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    auth: {
-      user: 'couplemartventures@gmail.com',
-      pass: 'vrqjhiceserysbga',
-    },
-    family: 4,              // ← force IPv4, fixes the 2607:f8b0 IPv6 issue
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  });
-// notificationService.js
-async function sendEmail(subject, html) {
-    try {
-      await transporter.sendMail({
-        from: 'couplemartventures@gmail.com',  // ← was vickymahi2102@gmail.com, MUST match auth.user
-        to: 'couplemartventures@gmail.com',
-        subject,
-        html,
-      });
-      console.log('✅ Admin email sent');
-    } catch (err) {
-      console.error('❌ Email Error:', err.message, err.code);  // ← log the code too
-    }
+const resend = new Resend('re_V2iViW5h_Cf6D4crYtbtHtWP5336QmZHN');
+
+async function sendEmail(subject, html, to = 'couplemartventures@gmail.com') {
+  try {
+    await resend.emails.send({
+      from: 'CoupleMart <onboarding@resend.dev>',
+      to,
+      subject,
+      html,
+    });
+    console.log('✅ Email sent to', to);
+  } catch (err) {
+    console.error('❌ Email Error:', err.message);
   }
+}
 
- 
-
-// In-memory notification store (swap with DB table for production)
+// In-memory notification store
 let notifications = [];
 let notifIdSeq = 1;
 
 function pushNotification({ type, title, body, orderId, meta = {} }) {
   const n = {
     id: notifIdSeq++,
-    type,       // 'order_new' | 'order_paid' | 'order_failed' | 'delivery_assigned'
+    type,
     title,
     body,
     orderId,
@@ -51,14 +34,12 @@ function pushNotification({ type, title, body, orderId, meta = {} }) {
     createdAt: new Date(),
   };
   notifications.unshift(n);
-  if (notifications.length > 200) notifications = notifications.slice(0, 200); // cap
+  if (notifications.length > 200) notifications = notifications.slice(0, 200);
   emitter.emit('notification', n);
   return n;
 }
 
-// Convenience helpers
 async function notifyNewOrder(order) {
-
   pushNotification({
     type: 'order_new',
     title: '🛒 New Order Received',
@@ -66,8 +47,7 @@ async function notifyNewOrder(order) {
     orderId: order.id,
   });
 
-  console.log('📧 Sending order email...');
-
+  console.log('📧 Sending admin email...');
   await sendEmail(
     `New CoupleMart Order ${order.orderNumber}`,
     `
@@ -75,272 +55,120 @@ async function notifyNewOrder(order) {
       <p><b>Order Number:</b> ${order.orderNumber}</p>
       <p><b>Amount:</b> ₹${order.totalAmount}</p>
       <p><b>Payment Method:</b> ${order.paymentMethod}</p>
+      <p><b>Customer:</b> ${order.customerName || 'N/A'} (${order.customerEmail || 'N/A'})</p>
     `
   );
 
-  await sendCustomerOrderEmail(order);
-
-  console.log('✅ Order email sent');
-}
-
-
-async function sendCustomerOrderEmail(order) {
-
-  console.log('Customer Email:', order.customerEmail);
-  console.log('Customer Name:', order.customerName);
-
-  if (!order.customerEmail) {
+  if (order.customerEmail) {
+    console.log('📧 Sending customer email to', order.customerEmail);
+    await sendEmail(
+      `🎉 Order Confirmed | ${order.orderNumber} | CoupleMart`,
+      `<!DOCTYPE html>
+      <html>
+      <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:30px 15px;">
+      <tr><td align="center">
+      <table width="650" cellpadding="0" cellspacing="0" style="max-width:650px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 10px 35px rgba(0,0,0,.08);">
+      
+      <tr>
+      <td align="center" style="background:linear-gradient(135deg,#e11d48,#fb7185);padding:40px 20px;">
+      <h1 style="margin:0;color:#fff;font-size:34px;font-weight:800;">❤️ CoupleMart</h1>
+      <p style="margin:10px 0 0;color:#ffe4e6;font-size:15px;">Made for Couples • Made with Love</p>
+      </td>
+      </tr>
+      
+      <tr>
+      <td style="padding:40px 35px;">
+      <h2 style="margin:0;color:#111827;font-size:28px;">🎉 Order Confirmed!</h2>
+      <p style="font-size:16px;color:#4b5563;line-height:1.8;">Hello <strong>${order.customerName || 'Customer'}</strong>,</p>
+      <p style="font-size:16px;color:#4b5563;line-height:1.8;">Thank you for shopping with CoupleMart. Your order has been successfully placed and is now being prepared.</p>
+      </td>
+      </tr>
+      
+      <tr>
+      <td style="padding:0 35px 30px;">
+      <table width="100%" style="background:#f9fafb;border-radius:14px;padding:20px;">
+      <tr><td>
+      <h3 style="margin-top:0;color:#111827;">📦 Order Details</h3>
+      <p style="margin:8px 0;color:#374151;"><strong>Order Number:</strong> ${order.orderNumber}</p>
+      <p style="margin:8px 0;color:#374151;"><strong>Order Date:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
+      <p style="margin:8px 0;color:#374151;"><strong>Payment Method:</strong> ${order.paymentMethod.toUpperCase()}</p>
+      <p style="margin:8px 0;color:#374151;"><strong>Total Amount:</strong> <span style="color:#e11d48;font-size:20px;font-weight:700;">₹${order.totalAmount}</span></p>
+      </td></tr>
+      </table>
+      </td>
+      </tr>
+      
+      <tr>
+      <td style="padding:0 35px 30px;">
+      <table width="100%" style="border:1px solid #e5e7eb;border-radius:14px;padding:20px;">
+      <tr><td>
+      <h3 style="margin-top:0;color:#111827;">🚚 Delivery Address</h3>
+      <p style="margin:6px 0;color:#4b5563;">${order.shippingAddress?.name || ''}</p>
+      <p style="margin:6px 0;color:#4b5563;">${order.shippingAddress?.addressLine1 || ''}</p>
+      <p style="margin:6px 0;color:#4b5563;">${order.shippingAddress?.city || ''}, ${order.shippingAddress?.state || ''}</p>
+      <p style="margin:6px 0;color:#4b5563;">${order.shippingAddress?.pincode || ''}</p>
+      </td></tr>
+      </table>
+      </td>
+      </tr>
+      
+      <tr>
+      <td style="padding:0 35px 30px;">
+      <div style="background:#ecfdf5;border:1px solid #a7f3d0;padding:18px;border-radius:12px;text-align:center;">
+      <p style="margin:0;font-size:16px;font-weight:700;color:#059669;">✅ Your order is confirmed and being processed.</p>
+      </div>
+      </td>
+      </tr>
+      
+      <tr>
+      <td align="center" style="padding:10px 35px 40px;">
+      <a href="https://couplemart.in/orders" style="background:#e11d48;color:#fff;text-decoration:none;padding:15px 35px;border-radius:999px;font-weight:700;display:inline-block;font-size:16px;">View My Orders</a>
+      </td>
+      </tr>
+      
+      <tr>
+      <td style="background:#111827;padding:35px;text-align:center;">
+      <h3 style="margin:0;color:white;">❤️ CoupleMart</h3>
+      <p style="color:#9ca3af;font-size:14px;line-height:1.7;margin-top:12px;">Thank you for choosing CoupleMart.<br>We'll notify you again when your order ships.</p>
+      <p style="color:#6b7280;font-size:12px;margin-top:20px;">© ${new Date().getFullYear()} CoupleMart. All Rights Reserved.</p>
+      </td>
+      </tr>
+      
+      </table>
+      </td></tr>
+      </table>
+      </body>
+      </html>`,
+      order.customerEmail
+    );
+  } else {
     console.log('❌ No customer email found');
-    return;
   }
-  try { 
-  await transporter.sendMail({
-    from: 'couplemartventures@gmail.com',
-    to: order.customerEmail,
-    subject: `🎉 Order Confirmed | ${order.orderNumber} | CoupleMart`,
-    html: `
-  <!DOCTYPE html>
-  <html>
-  <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Order Confirmation</title>
-  </head>
-  
-  <body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,sans-serif;">
-  
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:30px 15px;">
-  <tr>
-  <td align="center">
-  
-  <table width="650" cellpadding="0" cellspacing="0" style="max-width:650px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 10px 35px rgba(0,0,0,.08);">
-  
-  <!-- Header -->
-  <tr>
-  <td align="center" style="background:linear-gradient(135deg,#e11d48,#fb7185);padding:40px 20px;">
-  
-  <h1 style="margin:0;color:#fff;font-size:34px;font-weight:800;">
-  ❤️ CoupleMart
-  </h1>
-  
-  <p style="margin:10px 0 0;color:#ffe4e6;font-size:15px;">
-  Made for Couples • Made with Love
-  </p>
-  
-  </td>
-  </tr>
-  
-  <!-- Success -->
-  <tr>
-  <td style="padding:40px 35px;">
-  
-  <h2 style="margin:0;color:#111827;font-size:28px;">
-  🎉 Order Confirmed!
-  </h2>
-  
-  <p style="font-size:16px;color:#4b5563;line-height:1.8;">
-  Hello <strong>${order.customerName}</strong>,
-  </p>
-  
-  <p style="font-size:16px;color:#4b5563;line-height:1.8;">
-  Thank you for shopping with CoupleMart.
-  Your order has been successfully placed and is now being prepared.
-  </p>
-  
-  </td>
-  </tr>
-  
-  <!-- Order Details -->
-  <tr>
-  <td style="padding:0 35px 30px;">
-  
-  <table width="100%" style="background:#f9fafb;border-radius:14px;padding:20px;">
-  <tr>
-  <td>
-  
-  <h3 style="margin-top:0;color:#111827;">
-  📦 Order Details
-  </h3>
-  
-  <p style="margin:8px 0;color:#374151;">
-  <strong>Order Number:</strong> ${order.orderNumber}
-  </p>
-  
-  <p style="margin:8px 0;color:#374151;">
-  <strong>Order Date:</strong> ${new Date().toLocaleDateString('en-IN')}
-  </p>
-  
-  <p style="margin:8px 0;color:#374151;">
-  <strong>Payment Method:</strong> ${order.paymentMethod.toUpperCase()}
-  </p>
-  
-  <p style="margin:8px 0;color:#374151;">
-  <strong>Total Amount:</strong>
-  <span style="color:#e11d48;font-size:20px;font-weight:700;">
-  ₹${order.totalAmount}
-  </span>
-  </p>
-  
-  </td>
-  </tr>
-  </table>
-  
-  </td>
-  </tr>
-  
-  <!-- Shipping -->
-  <tr>
-  <td style="padding:0 35px 30px;">
-  
-  <table width="100%" style="border:1px solid #e5e7eb;border-radius:14px;padding:20px;">
-  <tr>
-  <td>
-  
-  <h3 style="margin-top:0;color:#111827;">
-  🚚 Delivery Address
-  </h3>
-  
-  <p style="margin:6px 0;color:#4b5563;">
-  ${order.shippingAddress?.name || ''}
-  </p>
-  
-  <p style="margin:6px 0;color:#4b5563;">
-  ${order.shippingAddress?.addressLine1 || ''}
-  </p>
-  
-  <p style="margin:6px 0;color:#4b5563;">
-  ${order.shippingAddress?.city || ''},
-  ${order.shippingAddress?.state || ''}
-  </p>
-  
-  <p style="margin:6px 0;color:#4b5563;">
-  ${order.shippingAddress?.pincode || ''}
-  </p>
-  
-  </td>
-  </tr>
-  </table>
-  
-  </td>
-  </tr>
-  
-  <!-- Status -->
-  <tr>
-  <td style="padding:0 35px 30px;">
-  
-  <div style="
-  background:#ecfdf5;
-  border:1px solid #a7f3d0;
-  padding:18px;
-  border-radius:12px;
-  text-align:center;
-  ">
-  
-  <p style="
-  margin:0;
-  font-size:16px;
-  font-weight:700;
-  color:#059669;
-  ">
-  ✅ Your order is confirmed and being processed.
-  </p>
-  
-  </div>
-  
-  </td>
-  </tr>
-  
-  <!-- CTA -->
-  <tr>
-  <td align="center" style="padding:10px 35px 40px;">
-  
-  <a href="https://couplemart.in/orders"
-  style="
-  background:#e11d48;
-  color:#fff;
-  text-decoration:none;
-  padding:15px 35px;
-  border-radius:999px;
-  font-weight:700;
-  display:inline-block;
-  font-size:16px;
-  ">
-  View My Orders
-  </a>
-  
-  </td>
-  </tr>
-  
-  <!-- Footer -->
-  <tr>
-  <td style="background:#111827;padding:35px;text-align:center;">
-  
-  <h3 style="margin:0;color:white;">
-  ❤️ CoupleMart
-  </h3>
-  
-  <p style="color:#9ca3af;font-size:14px;line-height:1.7;margin-top:12px;">
-  Thank you for choosing CoupleMart.<br>
-  We'll notify you again when your order ships.
-  </p>
-  
-  <p style="color:#6b7280;font-size:12px;margin-top:20px;">
-  © ${new Date().getFullYear()} CoupleMart. All Rights Reserved.
-  </p>
-  
-  </td>
-  </tr>
-  
-  </table>
-  
-  </td>
-  </tr>
-  </table>
-  
-  </body>
-  </html>
-  `
-  });
 
-  console.log('✅ Customer email sent');
-} catch (err) {                // ← and this
-    console.error('❌ Customer email failed:', err.message);
-  }
+  console.log('✅ All emails sent');
 }
 
 async function notifyPaymentSuccess(order) {
-
   const notification = pushNotification({
     type: 'order_paid',
     title: '✅ Payment Confirmed',
     body: `Order #${order.orderNumber} • ₹${order.totalAmount} paid via Razorpay`,
     orderId: order.id,
-    meta: {
-      amount: order.totalAmount,
-      razorpayPaymentId: order.razorpayPaymentId,
-    },
+    meta: { amount: order.totalAmount, razorpayPaymentId: order.razorpayPaymentId },
   });
 
-  const msg = `
-🛒 NEW ORDER - CoupleMart
-
-Order No: ${order.orderNumber}
-Amount: ₹${order.totalAmount}
-
-Payment: SUCCESS
-`;
-
-  sendEmail(
+  await sendEmail(
     `New Order ${order.orderNumber}`,
-    `
-    <h2>New CoupleMart Order</h2>
-    <p>Order Number: ${order.orderNumber}</p>
-    <p>Amount: ₹${order.totalAmount}</p>
-    <p>Status: Paid</p>
-    `
+    `<h2>New CoupleMart Order</h2>
+     <p>Order Number: ${order.orderNumber}</p>
+     <p>Amount: ₹${order.totalAmount}</p>
+     <p>Status: Paid</p>`
   );
-
- 
 
   return notification;
 }
@@ -381,7 +209,6 @@ function markAllRead() {
 
 module.exports = {
   emitter,
-  transporter,   
   sendEmail,
   notifyNewOrder,
   notifyPaymentSuccess,
@@ -389,5 +216,5 @@ module.exports = {
   notifyDeliveryAssigned,
   getNotifications,
   markRead,
-  markAllRead
+  markAllRead,
 };

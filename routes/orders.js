@@ -3,7 +3,7 @@ const express = require('express');
 const { Op } = require('sequelize');
 const { Order } = require('../models/Order');
 const { protect, adminOnly } = require('../middleware/auth');
-const { notifyNewOrder, notifyDeliveryAssigned,transporter } = require('./Notification');
+const { notifyNewOrder, notifyDeliveryAssigned } = require('./Notification');
 
 const router = express.Router();
 
@@ -46,11 +46,11 @@ router.post('/', protect, async (req, res) => {
     console.log('User Name:', req.user.name);
     console.log('User Email:', req.user.email);
     
-    // 🔔 Fire admin + customer notification
-    notifyNewOrder({...order.toJSON()}).catch(err =>
-      console.error('⚠️ notifyNewOrder failed (non-fatal):', err.message)
-    );
- 
+    notifyNewOrder({
+      ...order.toJSON(),
+      customerEmail: req.user.email,   // ← THIS is why customer never got email
+      customerName: req.user.name,
+    }).catch(err => console.error('⚠️ notifyNewOrder failed:', err.message));
 
     res.status(201).json(order.toJSON());
   } catch (err) {
@@ -58,24 +58,7 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// ADD THIS to routes/orders.js or any route file — remove after debugging
-router.get('/email-test', async (req, res) => {
-  try {
-    await transporter.sendMail({
-      from: 'couplemartventures@gmail.com',
-      to: 'couplemartventures@gmail.com',
-      subject: 'Render SMTP Test',
-      html: '<h2>Working!</h2>',
-    });
-    res.json({ ok: true, message: 'Email sent! Check inbox.' });
-  } catch (err) {
-    res.status(500).json({ 
-      error: err.message, 
-      code: err.code,        // EAUTH = wrong password, ECONNECTION = port blocked
-      response: err.response 
-    });
-  }
-});
+ 
 
 // GET /api/orders/my — current user's orders
 router.get('/my', protect, async (req, res) => {
