@@ -1,4 +1,4 @@
-// migrate.js
+// migrate.js — updated to also create wishlists table
 const { sequelize } = require('./models/index');
 
 async function migrate() {
@@ -7,24 +7,28 @@ async function migrate() {
     await sequelize.authenticate();
     console.log('✅ Connection established.');
 
-    // Safely add enum value only if it doesn't already exist
-    await sequelize.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_enum
-          WHERE enumlabel = 'pending_payment'
-          AND enumtypid = (
-            SELECT oid FROM pg_type WHERE typname = 'enum_orders_orderStatus'
-          )
-        ) THEN
-          ALTER TYPE "enum_orders_orderStatus" ADD VALUE 'pending_payment';
-        END IF;
-      END
-      $$;
-    `);
-    console.log('✅ Enum updated.');
+     
 
+    // ── NEW: create wishlists table ───────────────────────────────────────────
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS wishlists (
+        id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        "userId"    UUID        NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
+        "productId" UUID        NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE ("userId", "productId")
+      );
+    `);
+    console.log('✅ wishlists table ready.');
+
+    await sequelize.query(`
+      CREATE INDEX IF NOT EXISTS idx_wishlists_userId
+      ON wishlists("userId");
+    `);
+    console.log('✅ wishlists index ready.');
+
+    console.log('🎉 All migrations complete.');
     process.exit(0);
   } catch (err) {
     console.error('❌ Migration failed:', err);

@@ -13,6 +13,7 @@ const paymentRoutes  = require('./routes/payment');
 const uploadRoutes   = require('./routes/upload');
 const categoryRoutes = require('./routes/categories');
 const heroSlidesRoutes = require('./routes/heroSlides');
+const wishlistRoutes   = require('./routes/wishlist'); 
  
 
 dotenv.config();
@@ -49,6 +50,7 @@ app.use('/api/payment',    paymentRoutes);
 app.use('/api/upload',     uploadRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/hero-slides', heroSlidesRoutes);
+app.use('/api/wishlist',    wishlistRoutes);  
 
 app.get('/api/health', (req, res) =>
   res.json({ status: 'CoupleMart API is running', db: 'PostgreSQL' })
