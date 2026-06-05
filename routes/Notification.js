@@ -7,7 +7,7 @@ const resend = new Resend('re_V2iViW5h_Cf6D4crYtbtHtWP5336QmZHN');
 async function sendEmail(subject, html, to = 'couplemartventures@gmail.com') {
   try {
     await resend.emails.send({
-      from: 'CoupleMart <onboarding@resend.dev>',
+        from: 'CoupleMart <noreply@couplemart.in>',
       to,
       subject,
       html,
