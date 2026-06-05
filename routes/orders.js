@@ -47,11 +47,7 @@ router.post('/', protect, async (req, res) => {
     console.log('User Email:', req.user.email);
     
     // 🔔 Fire admin + customer notification
-    await notifyNewOrder({
-      ...order.toJSON(),
-      customerEmail: req.user.email,
-      customerName: req.user.name,
-    });
+    await notifyNewOrder({order});
  
 
     res.status(201).json(order.toJSON());
