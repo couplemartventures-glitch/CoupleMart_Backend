@@ -5,13 +5,19 @@ const EventEmitter = require('events');
 const emitter = new EventEmitter();
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: "couplemartventures@gmail.com",
-    pass: "vrqjhiceserysbga",
-  },
-});
-
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    auth: {
+      user: 'couplemartventures@gmail.com',
+      pass: 'vrqjhiceserysbga',
+    },
+    family: 4,              // ← force IPv4, fixes the 2607:f8b0 IPv6 issue
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+  });
 // notificationService.js
 async function sendEmail(subject, html) {
     try {
