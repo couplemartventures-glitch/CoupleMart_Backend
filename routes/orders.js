@@ -58,6 +58,21 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
+// ADD THIS to routes/orders.js or any route file — remove after debugging
+router.get('/test-email', protect, adminOnly, async (req, res) => {
+  try {
+    await transporter.sendMail({
+      from: 'couplemartventures@gmail.com',
+      to: 'couplemartventures@gmail.com',
+      subject: 'Test Email from Server',
+      html: '<h2>Test email working!</h2>',
+    });
+    res.json({ success: true, message: 'Email sent!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message, code: err.code });
+  }
+});
+
 // GET /api/orders/my — current user's orders
 router.get('/my', protect, async (req, res) => {
   try {
