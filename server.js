@@ -15,6 +15,8 @@ const categoryRoutes = require('./routes/categories');
 const heroSlidesRoutes = require('./routes/heroSlides');
 const wishlistRoutes   = require('./routes/wishlist'); 
 const coupleMarqueeRoutes = require('./routes/Couplemarquee');
+const adminNotificationRoutes = require('./routes/adminNotifications');
+
  
 
 dotenv.config();
@@ -53,6 +55,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/hero-slides', heroSlidesRoutes);
 app.use('/api/wishlist',    wishlistRoutes);  
 app.use('/api/couple-marquee', coupleMarqueeRoutes);
+app.use('/api/admin/notifications', adminNotificationRoutes);
 
 app.get('/api/health', (req, res) =>
   res.json({ status: 'CoupleMart API is running', db: 'PostgreSQL' })
