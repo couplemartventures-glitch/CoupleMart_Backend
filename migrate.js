@@ -1,4 +1,4 @@
-// migrate.js — updated to also create wishlists table
+// migrate.js — updated to also create couple_marquee_images table
 const { sequelize } = require('./models/index');
 
 async function migrate() {
@@ -6,27 +6,23 @@ async function migrate() {
     console.log('🔌 Connecting to PostgreSQL...');
     await sequelize.authenticate();
     console.log('✅ Connection established.');
-
-     
-
-    // ── NEW: create wishlists table ───────────────────────────────────────────
+    // ── couple_marquee_images table ───────────────────────────────────────────
     await sequelize.query(`
-      CREATE TABLE IF NOT EXISTS wishlists (
-        id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId"    UUID        NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
-        "productId" UUID        NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      CREATE TABLE IF NOT EXISTS couple_marquee_images (
+        id          SERIAL      PRIMARY KEY,
+        url         TEXT        NOT NULL,
+        "order"     INTEGER     NOT NULL DEFAULT 0,
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        UNIQUE ("userId", "productId")
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    console.log('✅ wishlists table ready.');
+    console.log('✅ couple_marquee_images table ready.');
 
     await sequelize.query(`
-      CREATE INDEX IF NOT EXISTS idx_wishlists_userId
-      ON wishlists("userId");
+      CREATE INDEX IF NOT EXISTS idx_couple_marquee_order
+      ON couple_marquee_images("order");
     `);
-    console.log('✅ wishlists index ready.');
+    console.log('✅ couple_marquee_images index ready.');
 
     console.log('🎉 All migrations complete.');
     process.exit(0);

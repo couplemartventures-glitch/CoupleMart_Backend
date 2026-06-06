@@ -1,9 +1,10 @@
 // models/index.js  — single import point for all models
 const sequelize = require('../config/database');
-const { User, Address }              = require('./User');
+const { User, Address }                   = require('./User');
 const { Product, ProductVariant, Review } = require('./Product');
-const { Order, OrderItem }           = require('./Order');
-const Wishlist                       = require('./Wishlist');   // ← NEW
+const { Order, OrderItem }                = require('./Order');
+const Wishlist                            = require('./Wishlist');
+const CoupleMarqueeImage                  = require('./CoupleMarqueeImage')(sequelize); // ← NEW
 
 // ── User → Orders ─────────────────────────────────────────────────────────────
 User.hasMany(Order,  { foreignKey: 'userId', as: 'orders' });
@@ -18,12 +19,12 @@ Product.hasMany(OrderItem,   { foreignKey: 'productId', as: 'orderItems' });
 OrderItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 
 // ── User → Wishlist ───────────────────────────────────────────────────────────
-User.hasMany(Wishlist,    { foreignKey: 'userId',    as: 'wishlists', onDelete: 'CASCADE' });
-Wishlist.belongsTo(User,  { foreignKey: 'userId' });
+User.hasMany(Wishlist,   { foreignKey: 'userId',    as: 'wishlists', onDelete: 'CASCADE' });
+Wishlist.belongsTo(User, { foreignKey: 'userId' });
 
 // ── Product → Wishlist ────────────────────────────────────────────────────────
-Product.hasMany(Wishlist,      { foreignKey: 'productId', as: 'wishlists', onDelete: 'CASCADE' });
-Wishlist.belongsTo(Product,    { foreignKey: 'productId', as: 'product' });
+Product.hasMany(Wishlist,    { foreignKey: 'productId', as: 'wishlists', onDelete: 'CASCADE' });
+Wishlist.belongsTo(Product,  { foreignKey: 'productId', as: 'product' });
 
 module.exports = {
   sequelize,
@@ -34,5 +35,6 @@ module.exports = {
   Review,
   Order,
   OrderItem,
-  Wishlist,   // ← NEW
+  Wishlist,
+  CoupleMarqueeImage, // ← NEW
 };
