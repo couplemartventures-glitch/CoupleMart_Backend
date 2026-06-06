@@ -1,40 +1,57 @@
-// routes/upload.js
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const express    = require('express');
+const multer     = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { protect, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Ensure uploads folder exists
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+cloudinary.config({
+  cloud_name:'dit4vpby1',
+  api_key:'175884332669247',
+  api_secret:'wQz6UPDzjmH-MGSAwb5wVxuGysM',
+});
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e6);
-    cb(null, unique + path.extname(file.originalname));
-  }
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder:          'couplemart',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation:  [{ width: 800, height: 1000, crop: 'limit', quality: 'auto' }],
+  },
 });
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
-  fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|webp/;
-    const ok = allowed.test(path.extname(file.originalname).toLowerCase())
-             && allowed.test(file.mimetype);
-    ok ? cb(null, true) : cb(new Error('Only jpeg/jpg/png/webp images allowed'));
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+// POST /api/upload
+router.post('/', protect, adminOnly, upload.array('images', 10), (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0)
+      return res.status(400).json({ message: 'No files uploaded' });
+
+    const urls = req.files.map(f => f.path);
+    res.json({ urls, message: `${urls.length} image(s) uploaded` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
-// POST /api/upload  — upload 1 or more images (admin only)
-router.post('/', protect, adminOnly, upload.array('images', 10), (req, res) => {
+// DELETE /api/upload
+router.delete('/', protect, adminOnly, async (req, res) => {
   try {
-    const urls = req.files.map(f => `/uploads/${f.filename}`);
-    res.json({ urls });
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ message: 'URL required' });
+
+    const parts    = url.split('/');
+    const file     = parts[parts.length - 1];
+    const name     = file.substring(0, file.lastIndexOf('.'));
+    const publicId = `couplemart/${name}`;
+
+    await cloudinary.uploader.destroy(publicId);
+    res.json({ message: 'Image deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
