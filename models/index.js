@@ -16,7 +16,7 @@ Review.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 // ── Product → OrderItems ──────────────────────────────────────────────────────
 Product.hasMany(OrderItem,   { foreignKey: 'productId', as: 'orderItems' });
-OrderItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
+OrderItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' }); 
 
 // ── User → Wishlist ───────────────────────────────────────────────────────────
 User.hasMany(Wishlist,   { foreignKey: 'userId',    as: 'wishlists', onDelete: 'CASCADE' });
